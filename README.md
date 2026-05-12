@@ -27,7 +27,7 @@ This repository contains the workflow file `POC-detections-gh-hosted.yml` that c
 * This workflow uses **workflow_dispatch** trigger, meaning the workflows can be triggered manually from the Actions tab by selecting the workflow and clicking **Run workflow**
 * Most detections do not require a baseline to be established and will be triggered upon running the [POC Detections workflow](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/POC-detections-gh-hosted.yml) one time
 * This workflow contains several different jobs, each intentionally triggering certain detections. Take a look at the workflow to get familiarized 
-* To detect and block *anomalous network calls*, a baseline is required to be established. For testing purposes, it is recommended to reduce the minimum number of runs from the default (100) to 1
+* To detect *anomalous network calls*, a baseline is required to be established. For testing purposes, it is recommended to reduce the minimum number of runs from the default (100) to 1
   * This can be done under your dashboard: **Admin Console →  Settings →  Anomaly Detection** - set this as '1' and **Save Changes**
 
 ## Triggering detections not requiring a baseline
@@ -66,12 +66,27 @@ For **Secret Detections**, select the **Controls** tab. Any secrets in build log
 ![Screenshot](./img/secret-leak.jpg)
 
 ## Triggering detections requiring a baseline
-After a baseline is established, Harden Runner can **audit or block** any new, anomalous network calls that are outside of the baseline. The baseline is [configurable](https://docs.stepsecurity.io/admin-console/settings/anomaly-detection#configuration) by number of job runs required, or by number of days elapsed. You can find this in your tenant dashboard under `Admin Console -> Settings -> Anomaly Detection`. While the default is 100, it is recommended to lower this for easier testing purpose. 
+After a baseline is established, Harden Runner can detect any new, anomalous network calls that are outside of the baseline. The baseline is [configurable](https://docs.stepsecurity.io/admin-console/settings/anomaly-detection#configuration) by number of job runs required, or by number of days elapsed. You can find this in your tenant dashboard under `Admin Console -> Settings -> Anomaly Detection`. While the default is 100, it is recommended to lower this for easier testing purposes. 
 
 * Run the workflow based on the number of runs set above to generate a baseline. You can verify the baseline is stable under the `Harden-Runner -> Baseline` tab
 * Run the workflow one more time, this time entering a new domain. (`Actions tab -> POC Detections` and before running the workflow, enter a new domain, ie `https://www.pastebin.com`)
 * Since this new domain is now outside of the baseline, it will trigger an anomalous network call - to observe the anomalous network call, navigate to the workflow runs insights page under the Network Events tab
 * Block Policy - [this section is currently being updated]
+
+## Blocking outbound calls
+
+There are two ways Harden Runner can block outbound network calls:
+
+#### 1. Global Block List
+StepSecurity maintains a global block list of known malicious domains and IP addresses.
+During active supply chain incidents (e.g., axios, trivy compromises), IOCs are added to
+this list and automatically blocked, **even if a block policy has not been explicitly set** 
+* The [`global-block-list`](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/poc-detections.yml#L123) job demonstrates this by attempting to call out to a dummy malicious domain (`evil.invalid`). After running the workflow, you can see the blocked call in the Insights page
+
+#### 2. Block Mode with Domain Allowlist
+With Harden Runner, you can define an `allowed-endpoints` list. This can be done directly in the workflow (GitHub-hosted runners) or centrally via [Policy Store](https://docs.stepsecurity.io/harden-runner/policy-store) (GitHub hosted and self-hosted runners). Any outbound call to a domain NOT on the list is blocked. The [`unauthorized-outbound-call`](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/poc-detections.yml#L95) job demonstrates
+this - it allows `github.com`, `goreleaser.com`, and `www.google.com`, then attempts a reverse shell connection to `ngrok.io`, which gets blocked. You can see the blocked call in the Insights page
+
 
 ## Lockdown Mode (Kubernetes ARC deployments only) 
 
