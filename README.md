@@ -54,7 +54,8 @@ For **Network Event Detections**, select the **Network Events** tab. Browse thro
 * *Click on **API Calls** to view details*
 * *Click on the Process ID (**PID**) to pinpoint the exact process triggering this network call*
 
-For **Process Event Detections**, select the **Process Events** tab. Browse through the jobs to see which ones triggered detections. This workflow triggers several process events for the following jobs: *reverse-shell*, *priviledged-container*, *imposter-commit*, *tj-actions-simulation*. The screenshot below shows an example for the reverse shell detection
+For **Process Event Detections**, select the **Process Events** tab. Browse through the jobs to see which ones triggered detections. The [poc-detections](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/poc-detections.yml) workflow triggers several process events for the following jobs: *reverse-shell*, *priviledged-container*, and *imposter-commit*. The screenshot below shows an example for the reverse shell detection. 
+* *Runner.worker memory read process detections will automatically get blocked as part of lockdown mode, without any configuration, as they are high-fidelity indicators of secret exfiltration. The [*tj-actions-simulation.yml*](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/tj-actions-simulation.yml) workflow is provided separately - running this workflow will result in the job being terminated.*
 
 ![Screenshot](./img/reverse-shell.jpg)
 *Click on **Suspicious Processes** to see details*
