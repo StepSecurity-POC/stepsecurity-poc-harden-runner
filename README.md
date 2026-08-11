@@ -2,37 +2,38 @@
  
 Harden-Runner is a purpose-built network filtering and runtime security monitoring platform for CI/CD runners. To learn more about Harden-Runner functionality, see [here](https://docs.stepsecurity.io/harden-runner).
 
-This repository contains the workflow file `POC-detections-gh-hosted.yml` that contains several different jobs to trigger all Harden-Runner detections. It also contains several other workflows for testing Lockdown Mode (ARC deployments only). A summary of the detections are below: 
+This repository contains the workflow file `poc-detections.yml`, which includes several different jobs to trigger all Harden-Runner detections. It also includes macOS and Windows equivalents: `poc-detections-macos.yml` and `poc-detections-windows.yml`, that run an equivalent set of detection jobs on GitHub-hosted runners for those platforms, plus several other workflows for testing Lockdown Mode (ARC deployments only). A summary of the detections is below: 
 
 | Detections | Description |
 |------------|-------|
-| **Secrets in Build Logs** | Detects secrets (API keys, tokens, etc.) that were accidentally leakd in build logs |
+| **Secrets in Build Logs** | Detects secrets (API keys, tokens, etc.) that were accidentally leaked in build logs |
 | **Secrets in Artifacts** |  Detects secrets found in generated artifacts |
 | **Outbound Calls Blocked** | Blocks outbound network requests to prevent security risks |
 | **Anomalous Outbound Network Calls** | Detects anomalous or unexpected external network requests [[Requires Baseline](https://docs.stepsecurity.io/harden-runner/baseline)]|
 | **Suspicious Outbound Network Calls** | Detects potentially malicious network requests during workflow execution |
 | **Source Code Overwritten** | Detect files modified during workflows to detect unauthorized changes |
 | **HTTPS Outbound Network Calls** | Monitors API calls that contain data-exfiltration signals (ie; POST, PUT, or PATCH going outside of organization) |
-| **Action Uses Imposter Commit** | Monitors for actions using tags that are pointed to maliscious commits (pointed to a fork or outside repo) |
+| **Action Uses Imposter Commit** | Monitors for actions using tags that are pointed to malicious commits (pointed to a fork or outside repo) |
 | **Reverse Shell** | Monitors for reverse shell activity. Reverse shells allow attackers to run commands, exfiltrate data, and move laterally |
 | **Privileged Container** | Monitors for privileged containers, which can let attackers escape to the host, access data, and move laterally |
 | **Runner Worker Memory Read** | Monitors for attempts to read runner.worker memory, which attacks like TJ-Actions use to extract secrets |
 
 ## Prerequisites
 * Ensure you have installed the [StepSecurity GitHub App](https://github.com/apps/stepsecurity-actions-security) and have access to your StepSecurity dashboard
-* Fork/clone this repository or simply copy the workflow file [`POC-detections-gh-hosted.yml`](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/POC-detections-gh-hosted.yml) into your own organization for testing
+* Fork/clone this repository or simply copy the workflow file [`poc-detections.yml`](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/poc-detections.yml) into your own organization for testing
   
 ## Environment information 
-* The main workflow (`POC-detections-gh-hosted.yml`) runs on GitHub-hosted runners, and it already includes the harden-runner action. No additional installation or configuration is required. For Self-Hosted scenario, please [reach out to StepSecurity](https://www.stepsecurity.io/contact).
+* The main workflow (`poc-detections.yml`) runs on GitHub-hosted runners, and it already includes the harden-runner action. No additional installation or configuration is required. For Self-Hosted scenario, please [reach out to StepSecurity](https://www.stepsecurity.io/contact).
+* The macOS (`poc-detections-macos.yml`) and Windows (`poc-detections-windows.yml`) workflows also run on GitHub-hosted runners with no additional installation required, and use the same **workflow_dispatch** trigger as the main workflow.
 * This workflow uses **workflow_dispatch** trigger, meaning the workflows can be triggered manually from the Actions tab by selecting the workflow and clicking **Run workflow**
-* Most detections do not require a baseline to be established and will be triggered upon running the [POC Detections workflow](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/POC-detections-gh-hosted.yml) one time
+* Most detections do not require a baseline to be established and will be triggered upon running the [POC Detections workflow](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/poc-detections.yml) one time
 * This workflow contains several different jobs, each intentionally triggering certain detections. Take a look at the workflow to get familiarized 
 * To detect *anomalous network calls*, a baseline is required to be established. For testing purposes, it is recommended to reduce the minimum number of runs from the default (100) to 1
   * This can be done under your dashboard: **Admin Console →  Settings →  Anomaly Detection** - set this as '1' and **Save Changes**
 
 ## Triggering detections not requiring a baseline
 
-You can instantly test majority of these detections via the [`POC-detections-gh-hosted.yml`](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/POC-detections-gh-hosted.yml) workflow. The following detections will trigger as soon as you run the `POC-detections-gh-hosted.yml` workflow one time:
+You can instantly test majority of these detections via the [`poc-detections.yml`](https://github.com/step-security-poc/stepsecurity-poc-harden-runner/blob/main/.github/workflows/poc-detections.yml) workflow. The following detections will trigger as soon as you run the `poc-detections.yml` workflow one time:
 
 * HTTPS Monitoring for Anomalous Network Calls (**Network** Event)
 * Outbound Calls Blocked (**Network** Event)
@@ -41,6 +42,8 @@ You can instantly test majority of these detections via the [`POC-detections-gh-
 * Runner Worker Memory Read (**Process** Event) 
 * Imposter Commit (**Process** Event)
 * Secrets in Build Logs (**Control**)
+
+> **Note:** The list above reflects `poc-detections.yml` (Linux). The macOS and Windows equivalents (`poc-detections-macos.yml`, `poc-detections-windows.yml`) trigger most of the same detections
 
 ### Viewing detections not requiring a baseline
 

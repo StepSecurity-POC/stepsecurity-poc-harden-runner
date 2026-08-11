@@ -1,0 +1,114 @@
+name: POC Detections - Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_only_anomalous:
+        description: 'Run only the anomalous-outbound-call job'
+        required: false
+        default: false
+        type: boolean
+      anomalous_domain:
+        description: 'Domain for anomalous outbound call (e.g., https://www.pastebin.com)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  handle-private-key:
+    if: ${{ github.event.inputs.run_only_anomalous != 'true' }}
+    runs-on: windows-latest
+    steps:
+      - uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Decode and print private key
+        shell: pwsh
+        env:
+          # This is a base64 encoded dummy private key (NOT A REAL KEY)
+          # In production, this should be stored in GitHub Secrets
+          ENCODED_PRIVATE_KEY: |
+            LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tTUlJRXZnSUJBREFOQmdrcWhraUc5dzBCQVFFRkFBU0NCS2d3Z2dTa0FnRUFBb0lCQVFDN1ZKVFV0OVVzOGNLagpNekVmWXlqaVdBNFI0L00yYlMxR0I0dDdOWHA5OEMzU0M2ZFZNdkR1aWN0R2V1clQ4ak5idkpaSHRDU3VZRWNONXI0RQpKV25YaXNLNVkrVHYra1pnWlBtNXdRQTB3MVd1cGZhUlZQUGhoR2dUN1daeEM3UFJMTjIvaUo5dDJRTGloNzlEMFF1ZwpINFE3clB3SVVDdzdOYjJYSVpHc1VYSzJhZmlJM24vT1NQSHVRR0dCRnhIcWI3VWwzM3lJdUN4UjBJcTVuem1RTENFVApSYm5pRzRoeE5aMEo3a3hwZzdtWk5LQ1JKd0NRSFl0SEhxVVVOTGl4Q01TNDU1cWo5SUhJTVYwbEc0NFhLWEV6U0oxWgpjajZuQ1B6aFJtUXBDd2p0MWJJT0NWU0VKMUppU204YTVTdUpLRkxtQWlVTmtsZnJOckdEMjN1RUlRSURBUUFCQW9JQgpBQUh0QmJZcDBBdzVOTi9lV0ROUDVuekZFYVhSWmM3QUNuc3BQN1VFSUZZeDkrNW5BU1pnc0l1ZUh4VlpiZ25QTTl6RQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t
+        run: |
+          Write-Host "Decoding private key..."
+          $bytes = [Convert]::FromBase64String($env:ENCODED_PRIVATE_KEY)
+          [IO.File]::WriteAllBytes("private_key.pem", $bytes)
+          Write-Host "Private key content:"
+          Get-Content private_key.pem
+
+  imposter-commit:
+    if: ${{ github.event.inputs.run_only_anomalous != 'true' }}
+    runs-on: windows-latest
+    steps:
+      - uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - uses: step-security/dummy-imposter-commit-action@v1
+
+  unauthorized-outbound-call:
+    if: ${{ github.event.inputs.run_only_anomalous != 'true' }}
+    runs-on: windows-latest
+    steps:
+      - uses: step-security/harden-runner@v2
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            goreleaser.com:443
+            www.google.com:443
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run outbound calls from host
+        shell: pwsh
+        run: |
+          $endTime = (Get-Date).AddSeconds(30)
+          while ((Get-Date) -lt $endTime) {
+            curl.exe -I https://www.google.com
+            curl.exe -I https://goreleaser.com
+            Start-Sleep -Seconds 10
+          }
+
+      - name: Reverse shell
+        shell: pwsh
+        run: |
+          Test-NetConnection -ComputerName '0.tcp.us-cal-1.ngrok.io' -Port 17658
+
+  anomalous-outbound-call:
+    runs-on: windows-latest
+    steps:
+      - uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run outbound calls from host
+        shell: pwsh
+        run: |
+          $endTime = (Get-Date).AddSeconds(30)
+          while ((Get-Date) -lt $endTime) {
+            curl.exe -I https://www.google.com
+            curl.exe -I https://goreleaser.com
+            Start-Sleep -Seconds 10
+          }
+
+      - name: Make anomalous outbound call
+        if: ${{ github.event.inputs.anomalous_domain != '' }}
+        shell: pwsh
+        env:
+          ANOMALOUS_DOMAIN: ${{ github.event.inputs.anomalous_domain }}
+        run: |
+          Write-Host "Making anomalous call to: $env:ANOMALOUS_DOMAIN"
+          curl.exe -I --max-time 5 "$env:ANOMALOUS_DOMAIN"
+          exit 0
